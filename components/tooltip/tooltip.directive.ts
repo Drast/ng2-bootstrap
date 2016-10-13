@@ -1,5 +1,5 @@
 import {
-  ComponentRef, Directive, HostListener, Input, ReflectiveInjector, TemplateRef, ViewContainerRef
+  ComponentRef, Directive, HostListener, Input, ReflectiveInjector, TemplateRef, ViewContainerRef, Output, EventEmitter
 } from '@angular/core';
 
 import { TooltipContainerComponent } from './tooltip-container.component';
@@ -7,7 +7,10 @@ import { TooltipOptions } from './tooltip-options.class';
 import { ComponentsHelper } from '../utils/components-helper.service';
 
 /* tslint:disable */
-@Directive({selector: '[tooltip], [tooltipHtml]'})
+@Directive({
+  selector: '[tooltip], [tooltipHtml]',
+  exportAs: 'bs-tooltip'
+})
 /* tslint:enable */
 export class TooltipDirective {
   /* tslint:disable */
@@ -22,6 +25,8 @@ export class TooltipDirective {
   @Input('tooltipContext') public tooltipContext:any;
   /* tslint:enable */
 
+  @Output() public tooltipStateChanged:EventEmitter<boolean> = new EventEmitter<boolean>();
+
   public viewContainerRef:ViewContainerRef;
   public componentsHelper:ComponentsHelper;
 
@@ -35,8 +40,8 @@ export class TooltipDirective {
 
   // todo: filter triggers
   // params: event, target
-  @HostListener('focusin', ['$event', '$target'])
-  @HostListener('mouseenter', ['$event', '$target'])
+  @HostListener('focusin')
+  @HostListener('mouseenter')
   public show():void {
     if (this.visible || !this.enable) {
       return;
@@ -58,16 +63,23 @@ export class TooltipDirective {
 
     this.tooltip = this.componentsHelper
       .appendNextToLocation(TooltipContainerComponent, this.viewContainerRef, binding);
+
+    this.triggerStateChanged();
   }
 
   // params event, target
-  @HostListener('focusout', ['$event', '$target'])
-  @HostListener('mouseleave', ['$event', '$target'])
+  @HostListener('focusout')
+  @HostListener('mouseleave')
   public hide():void {
     if (!this.visible) {
       return;
     }
     this.visible = false;
     this.tooltip.destroy();
+    this.triggerStateChanged();
+  }
+
+  private triggerStateChanged():void {
+    this.tooltipStateChanged.emit(this.visible);
   }
 }
